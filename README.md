@@ -46,7 +46,7 @@ package com.tutorial;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
-public class MyPlugin extends Plugin<Project> {
+public class MyPlugin implements Plugin<Project> {
 
   private Project project;
 
@@ -132,7 +132,7 @@ Lets try to build the test project
 > ./gradlew assemble
 
 FAILED
-Plugin with id 'com.tutorial.MyPlugin` not found
+Plugin with id 'com.tutorial.my-plugin` not found
 
 ```
 Plugins are referenced by Id, but we never really added that meta data, so lets go do that.
@@ -307,8 +307,8 @@ of null. This can be establishing using inputs/outputs described in a little mor
 [here](https://docs.gradle.org/current/userguide/more_about_tasks.html), which also double
 as incremental build hints for the system. Anyway, lets do that...
 
-On the "getter" <-- this is important, groovy development puts it on the member definition, 
-but in java, you gotta put it on the getter, lets put and `@Input` annotation.
+On the "getter" <-- this is important, groovy development puts it on the member definition,
+but in java, you gotta put it on the getter, lets put an `@Input` annotation.
 
 ```java
 import org.gradle.api.tasks.Input;
@@ -383,7 +383,7 @@ public class ExtensionX {
 }
 ```
 
-Lets add this extension to our project, go back to `my-plugin/build.gradle` and
+Lets add this extension to our project, go back to `my-plugin/../MyPlugin.java` and
 create a small method to initialize the extension, and call it from
 the apply method. We want to save the extension result so we can use it later.
 
@@ -406,13 +406,21 @@ When you create a task, you can configure it at creation time by adding an
 `Action` parameter, so we have to modify `createTaskX()` to set the message
 from the extension.
 ```java
-private void createTaskX() {
-  project.getTasks().create("taskX", TaskX.class, new Action<TaskX>() {
-    @Override
-    public void execute(TaskX taskX) {
-      taskX.setMessage(extension.getMessage());
-    }
-  });
+import org.gradle.api.Action;
+
+...
+
+public class MyPlugin ... {
+  ...
+  private void createTaskX() {
+    project.getTasks().create("taskX", TaskX.class, new Action<TaskX>() {
+      @Override
+      public void execute(TaskX taskX) {
+        taskX.setMessage(extension.getMessage());
+      }
+    });
+  }
+  ...
 }
 
 ```
@@ -487,16 +495,23 @@ Hurray, our extension now works.
 
 ### UP-TO-DATE tasks
 Sometimes you see a task as "UP-TO-DATE", this is because gradle is checking that the
-tasks inputs and outputs haven't change. More reading [here](https://docs.gradle.org/current/userguide/more_about_tasks.html#sec:up_to_date_checks)
+tasks inputs and outputs haven't changed. More reading [here](https://docs.gradle.org/current/userguide/more_about_tasks.html#sec:up_to_date_checks)
 if you want more information.
 
 Anyway, lets just use a simple example to get you familiar with how this works.
 
 A task will not be `UP-TO-DATE` unless it has at least one output. So lets make our
 task actually do something. So lets add a new outputDirectory to our Task and write
-something in some file we put there. Update `my-plugin/../TaskX`
+something in some file we put there. Update `my-plugin/../TaskX.java`
 
 ```java
+
+...
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 
 public class TaskX extends DefaultTask {
 
